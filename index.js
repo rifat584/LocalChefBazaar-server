@@ -57,6 +57,8 @@ async function run() {
     const mealsColl = db.collection("meals");
     const usersColl = db.collection("users");
     const rolesColl = db.collection("roles");
+    const reviewsColl = db.collection("reviews");
+    const favoriteColl = db.collection("favorite");
 
     // POST REQUESTS
     // meals
@@ -79,7 +81,51 @@ async function run() {
       const result = await rolesColl.insertOne(userData);
       res.send(result);
     });
-    
+
+    // reviews
+    app.post("/review/:id", async (req, res) => {
+      const reviewData = req.body;
+      const id = req.params.id;
+
+      const findMeal = await mealsColl.findOne({ _id: new ObjectId(findMeal)});
+      if (!find) {
+        return res.status(404).json({message: "Meal Not Found!"})
+      }
+      
+      const existingReview = await reviewsColl.findOne({foodId: reviewData.foodId})
+      if(existingReview){
+        return res.status(409).json({message: "You have already reviewed this meal"})
+      }
+      const result = await reviewsColl.insertOne(reviewData);
+      res.send(result);
+    });
+
+    // favorite
+    app.post("/favorite/:id", async (req, res) => {
+      const favoriteData = req.body;
+      const id = req.params.id;
+
+      const find = await mealsColl.findOne({ _id: new ObjectId(id) });
+      if (!find) {
+        return res.status(404).json({ message: "Meal Not Found!" });
+      }
+
+      const existingFavorite = await favoriteColl.findOne({ mealId: id });
+      if (existingFavorite) {
+        return res
+          .status(409)
+          .json({ message: "Meal already exist in your favorite List" });
+      }
+
+      const result = await favoriteColl.insertOne({
+        ...favoriteData,
+        mealId: id,
+        addedTime: new Date().toISOString(),
+      });
+      return res.send(result);
+    });
+
+
 
 
 
@@ -90,7 +136,7 @@ async function run() {
       res.send(result);
     });
     // single meal
-    app.get("/meals/:id", async (req, res) => {
+    app.get("/meal/:id", async (req, res) => {
       const id = req.params.id;
       const result = await mealsColl.findOne({ _id: new ObjectId(id) });
       res.send(result);
@@ -105,6 +151,19 @@ async function run() {
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
       const result = await usersColl.findOne({ email });
+      res.send(result);
+    });
+
+    // all roles
+    app.get("/roles", async (req, res) => {
+      const result = await rolesColl.find().toArray();
+      res.send(result);
+    });
+
+    // single user's favorite
+    app.get("/favorite/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await rolesColl.findOne({ email });
       res.send(result);
     });
 
@@ -131,26 +190,6 @@ async function run() {
       res.send(result);
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
