@@ -87,16 +87,16 @@ async function run() {
       const reviewData = req.body;
       const id = req.params.id;
 
-      const findMeal = await mealsColl.findOne({ _id: new ObjectId(findMeal)});
-      if (!find) {
+      const findMeal = await mealsColl.findOne({ _id: new ObjectId(id)});
+      if (!findMeal) {
         return res.status(404).json({message: "Meal Not Found!"})
       }
       
-      const existingReview = await reviewsColl.findOne({foodId: reviewData.foodId})
+      const existingReview = await reviewsColl.findOne({foodId: id})
       if(existingReview){
         return res.status(409).json({message: "You have already reviewed this meal"})
       }
-      const result = await reviewsColl.insertOne(reviewData);
+      const result = await reviewsColl.insertOne({...reviewData, foodId: id, date: new Date().toISOString()});
       res.send(result);
     });
 
