@@ -59,6 +59,7 @@ async function run() {
     const rolesColl = db.collection("roles");
     const reviewsColl = db.collection("reviews");
     const favoriteColl = db.collection("favorite");
+    const ordersColl = db.collection("orders");
 
     // POST REQUESTS
     // meals
@@ -92,7 +93,7 @@ async function run() {
         return res.status(404).json({message: "Meal Not Found!"})
       }
       
-      const existingReview = await reviewsColl.findOne({foodId: id})
+      const existingReview = await reviewsColl.findOne({reviewerImage: reviewData.reviewerImage})
       if(existingReview){
         return res.status(409).json({message: "You have already reviewed this meal"})
       }
@@ -126,7 +127,11 @@ async function run() {
     });
 
 
-
+    app.post('/orders', async(req, res)=>{
+      const ordersData = req.body;
+      const result = await ordersColl.insertOne(ordersData);
+      res.send(result);
+    })
 
 
     // GET REQUESTS
@@ -166,6 +171,18 @@ async function run() {
       const result = await rolesColl.findOne({ email });
       res.send(result);
     });
+
+// all reviews for a meal
+    app.get("/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await reviewsColl.find({foodId: id}).toArray();
+      res.send(result);
+    });
+
+
+
+
+
 
     // PATCH REQUESTS
     // update role
