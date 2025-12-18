@@ -78,7 +78,7 @@ async function run() {
     // roles
     app.post("/roles", async (req, res) => {
       const userData = req.body;
-      const existingRequest = rolesColl.findOne({userEmail: userData.userEmail})
+      const existingRequest = await rolesColl.findOne({userEmail: userData.userEmail})
       if(existingRequest){
         return res.status(409).json({message: "Your request is being processed. Wait for approval!"})
       }
@@ -96,7 +96,7 @@ async function run() {
         return res.status(404).json({message: "Meal Not Found!"})
       }
       
-      const existingReview = await reviewsColl.findOne({reviewerEmail: reviewData.reviewerEmail})
+      const existingReview = await reviewsColl.findOne({reviewerEmail: reviewData.reviewerEmail, foodId: id})
       if(existingReview){
         return res.status(409).json({message: "You have already reviewed this meal"})
       }
@@ -114,7 +114,7 @@ async function run() {
         return res.status(404).json({ message: "Meal Not Found!" });
       }
 
-      const existingFavorite = await favoriteColl.findOne({ userEmail: favoriteData.userEmail });
+      const existingFavorite = await favoriteColl.findOne({ mealId: id, userEmail: favoriteData.userEmail});
       if (existingFavorite) {
         return res
           .status(409)
@@ -147,6 +147,13 @@ async function run() {
     app.get("/meal/:id", async (req, res) => {
       const id = req.params.id;
       const result = await mealsColl.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+    // all chef meals
+    app.get("/my-meal/:id", async (req, res) => {
+      const chefId = req.params.id;
+      const result = await mealsColl.find({ chefId}).toArray();
       res.send(result);
     });
 
@@ -195,7 +202,13 @@ async function run() {
       res.send(result)
     })
 
-
+  // chef's order requests
+  app.get('/order/chef/:id', async (req, res)=>{
+      const chefId = req.params.id;
+      console.log(req);
+      const result = await ordersColl.find({chefId}).toArray();
+      res.send(result)
+    })
 
 
     // PATCH REQUESTS
@@ -226,7 +239,26 @@ async function run() {
       }
       const result = await usersColl.findOneAndUpdate({email}, update);
       res.send(result)
+      console.log(result);
     });
+
+
+    // Order Process
+    app.patch('/order/change-status/:id', async(req, res)=>{
+      const id = req.params.id;
+      const {status}= req.query;
+
+      const query = {
+        _id: new ObjectId(id)
+      }
+      const update = {
+        $set:{
+          orderStatus: status
+        }
+      }
+      const result = await ordersColl.updateOne(query, update);
+      res.send(result)
+    })
 
 // DELETE REQUESTS
 // role request delete
