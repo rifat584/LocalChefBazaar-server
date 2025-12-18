@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const admin = require("firebase-admin");
@@ -17,9 +17,7 @@ const app = express();
 // middleware
 app.use(
   cors({
-    origin: [
-      `${process.env.BASE_URL}`,
-    ],
+    origin: [`${process.env.BASE_URL}`],
     credentials: true,
     optionSuccessStatus: 200,
   })
@@ -78,9 +76,13 @@ async function run() {
     // roles
     app.post("/roles", async (req, res) => {
       const userData = req.body;
-      const existingRequest = await rolesColl.findOne({userEmail: userData.userEmail})
-      if(existingRequest){
-        return res.status(409).json({message: "Your request is being processed. Wait for approval!"})
+      const existingRequest = await rolesColl.findOne({
+        userEmail: userData.userEmail,
+      });
+      if (existingRequest) {
+        return res.status(409).json({
+          message: "Your request is being processed. Wait for approval!",
+        });
       }
       const result = await rolesColl.insertOne(userData);
       res.send(result);
@@ -91,16 +93,25 @@ async function run() {
       const reviewData = req.body;
       const id = req.params.id;
 
-      const findMeal = await mealsColl.findOne({ _id: new ObjectId(id)});
+      const findMeal = await mealsColl.findOne({ _id: new ObjectId(id) });
       if (!findMeal) {
-        return res.status(404).json({message: "Meal Not Found!"})
+        return res.status(404).json({ message: "Meal Not Found!" });
       }
-      
-      const existingReview = await reviewsColl.findOne({reviewerEmail: reviewData.reviewerEmail, foodId: id})
-      if(existingReview){
-        return res.status(409).json({message: "You have already reviewed this meal"})
+
+      const existingReview = await reviewsColl.findOne({
+        reviewerEmail: reviewData.reviewerEmail,
+        foodId: id,
+      });
+      if (existingReview) {
+        return res
+          .status(409)
+          .json({ message: "You have already reviewed this meal" });
       }
-      const result = await reviewsColl.insertOne({...reviewData, foodId: id, date: new Date().toISOString()});
+      const result = await reviewsColl.insertOne({
+        ...reviewData,
+        foodId: id,
+        date: new Date().toISOString(),
+      });
       res.send(result);
     });
 
@@ -114,7 +125,10 @@ async function run() {
         return res.status(404).json({ message: "Meal Not Found!" });
       }
 
-      const existingFavorite = await favoriteColl.findOne({ mealId: id, userEmail: favoriteData.userEmail});
+      const existingFavorite = await favoriteColl.findOne({
+        mealId: id,
+        userEmail: favoriteData.userEmail,
+      });
       if (existingFavorite) {
         return res
           .status(409)
@@ -129,13 +143,14 @@ async function run() {
       return res.send(result);
     });
 
-
-    app.post('/orders', async(req, res)=>{
+    app.post("/orders", async (req, res) => {
       const ordersData = req.body;
-      const result = await ordersColl.insertOne({...ordersData, orderTime: new Date().toISOString()});
+      const result = await ordersColl.insertOne({
+        ...ordersData,
+        orderTime: new Date().toISOString(),
+      });
       res.send(result);
-    })
-
+    });
 
     // GET REQUESTS
     // all meals
@@ -153,7 +168,7 @@ async function run() {
     // all chef meals
     app.get("/my-meal/:id", async (req, res) => {
       const chefId = req.params.id;
-      const result = await mealsColl.find({ chefId}).toArray();
+      const result = await mealsColl.find({ chefId }).toArray();
       res.send(result);
     });
 
@@ -188,28 +203,27 @@ async function run() {
       res.send(result);
     });
 
-// all reviews for a meal
+    // all reviews for a meal
     app.get("/reviews/:id", async (req, res) => {
       const id = req.params.id;
-      const result = await reviewsColl.find({foodId: id}).toArray();
+      const result = await reviewsColl.find({ foodId: id }).toArray();
       res.send(result);
     });
 
     // order by single user
-    app.get('/order/:email', async (req, res)=>{
+    app.get("/order/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await ordersColl.find({userEmail: email}).toArray();
-      res.send(result)
-    })
+      const result = await ordersColl.find({ userEmail: email }).toArray();
+      res.send(result);
+    });
 
-  // chef's order requests
-  app.get('/order/chef/:id', async (req, res)=>{
+    // chef's order requests
+    app.get("/order/chef/:id", async (req, res) => {
       const chefId = req.params.id;
       console.log(req);
-      const result = await ordersColl.find({chefId}).toArray();
-      res.send(result)
-    })
-
+      const result = await ordersColl.find({ chefId }).toArray();
+      res.send(result);
+    });
 
     // PATCH REQUESTS
     // update role
@@ -219,98 +233,135 @@ async function run() {
     }
     app.patch("/user/:email", async (req, res) => {
       const email = req.params.email;
-      const {role} = req.query;
+      const { role } = req.query;
 
-      if(role==="chef"){
+      if (role === "chef") {
         const update = {
           $set: {
-            role: 'chef',
+            role: "chef",
             chefId: generateChefId(),
-          }}
+          },
+        };
 
-        const result = await usersColl.findOneAndUpdate({email}, update, {
-            returnDocument: "after",
-          })
-      return res.send(result);
-      };
-      const update = {
-        $set:{role: role},
-        $unset:{"chefId":""}
+        const result = await usersColl.findOneAndUpdate({ email }, update, {
+          returnDocument: "after",
+        });
+        return res.send(result);
       }
-      const result = await usersColl.findOneAndUpdate({email}, update);
-      res.send(result)
+      const update = {
+        $set: { role: role },
+        $unset: { chefId: "" },
+      };
+      const result = await usersColl.findOneAndUpdate({ email }, update);
+      res.send(result);
       console.log(result);
     });
 
-
     // Order Process
-    app.patch('/order/change-status/:id', async(req, res)=>{
+    app.patch("/order/change-status/:id", async (req, res) => {
       const id = req.params.id;
-      const {status}= req.query;
+      const { status } = req.query;
 
       const query = {
-        _id: new ObjectId(id)
-      }
+        _id: new ObjectId(id),
+      };
       const update = {
-        $set:{
-          orderStatus: status
-        }
-      }
+        $set: {
+          orderStatus: status,
+        },
+      };
       const result = await ordersColl.updateOne(query, update);
-      res.send(result)
-    })
+      res.send(result);
+    });
 
-// DELETE REQUESTS
-// role request delete
-app.delete('/role/:email', async(req, res)=>{
-  const userEmail = req.params.email;
-  const result = await rolesColl.deleteOne({userEmail});
-  res.send(result)
-})
-// favorite meal  delete
-app.delete('/favorite/:id', async(req, res)=>{
-  const id = req.params.id;
-  const result = await favoriteColl.deleteOne({_id: new ObjectId(id)});
-  res.send(result)
-})
+    // DELETE REQUESTS
+    // role request delete
+    app.delete("/role/:email", async (req, res) => {
+      const userEmail = req.params.email;
+      const result = await rolesColl.deleteOne({ userEmail });
+      res.send(result);
+    });
+    // favorite meal  delete
+    app.delete("/favorite/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await favoriteColl.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
 
     // STRIPE PAYMENT API
-    app.post('/create-checkout-session', async (req, res) => {
-  const session = await stripe.checkout.sessions.create({
-    line_items: [
-      {
-        price: '{{PRICE_ID}}',
-        quantity: 1,
-      },
-    ],
-    mode: 'payment',
-    success_url: `${process.env.BASE_URL/payment-success}`,
-    cancel_url: process.env.BASE_URL
-  });
+    app.post("/create-checkout-session", async (req, res) => {
+      try {
+        const {
+          _id: orderId,
+          mealName,
+          price,
+          quantity,
+          chefId,
+          userEmail,
+          foodId,
+        } = req.body;
 
-  res.redirect(303, session.url);
-});
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          mode: "payment",
 
+          line_items: [
+            {
+              price_data: {
+                currency: "bdt",
+                product_data: {
+                  name: mealName,
+                },
+                unit_amount: (price / quantity) * 100,
+              },
+              quantity,
+            },
+          ],
 
-app.get('/session-status', async (req, res) => {
-  const session = await stripe.checkout.sessions.retrieve(req.query.session_id);
+          customer_email: userEmail,
 
-  res.send({
-    status: session.status,
-    customer_email: session.customer_details.email
-  });
-})
+          metadata: {
+            orderId,
+            chefId,
+            userEmail,
+            mealName,
+            foodId,
+          },
 
+          success_url: `${process.env.BASE_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.BASE_URL}/dashboard/my-orders`,
+        });
 
+        res.send({ url: session.url });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
 
-
-
-
-
-
-
-
-
+// Retrieve STRIPE SESSION
+    app.get("/session-status", async (req, res) => {
+      const { session_id } = req.query;
+      if (!session_id) {
+        return res.status(400).json({ message: "Missing session_id" });
+      }
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session.payment_status === "paid") {
+        await ordersColl.updateOne(
+          { _id: new ObjectId(session.metadata.orderId) },
+          {
+            $set: {
+              paymentStatus: "paid",
+              paymentTime: new Date().toISOString(),
+            },
+          }
+        );
+      }
+      res.send({
+        status: session.status,
+        customer_email: session.customer_details.email,
+        session: session,
+      });
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
