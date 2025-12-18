@@ -168,10 +168,16 @@ async function run() {
       res.send(result);
     });
 
-    // single user's favorite
-    app.get("/favorite/:email", async (req, res) => {
+    //  user's favorite
+    app.get("/favorite-meal/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await rolesColl.findOne({ email });
+      const result = await favoriteColl.find({ userEmail: email }).toArray();
+      res.send(result);
+    });
+    //  user's reviews
+    app.get("/review/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await reviewsColl.find({ reviewerEmail: email }).toArray();
       res.send(result);
     });
 
@@ -227,6 +233,12 @@ async function run() {
 app.delete('/role/:email', async(req, res)=>{
   const userEmail = req.params.email;
   const result = await rolesColl.deleteOne({userEmail});
+  res.send(result)
+})
+// favorite meal  delete
+app.delete('/favorite/:id', async(req, res)=>{
+  const id = req.params.id;
+  const result = await favoriteColl.deleteOne({_id: new ObjectId(id)});
   res.send(result)
 })
 
