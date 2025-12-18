@@ -158,6 +158,34 @@ async function run() {
       const result = await mealsColl.find().toArray();
       res.send(result);
     });
+
+    // Paginated meals
+    app.get("/all-meals", async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 6;
+      const skip = (page - 1) * limit;
+
+      // Sort options
+      const sortBy = req.query.sortBy || "createdAt"; // default sort field
+      const order = req.query.order === "desc" ? -1 : 1; // default ascending
+
+      const total = await mealsColl.countDocuments();
+
+      const meals = await mealsColl
+        .find()
+        .sort({ [sortBy]: order })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+      res.send({
+        data: meals,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      });
+    });
+
     // single meal
     app.get("/meal/:id", async (req, res) => {
       const id = req.params.id;
@@ -196,6 +224,12 @@ async function run() {
       const result = await favoriteColl.find({ userEmail: email }).toArray();
       res.send(result);
     });
+    //  all reviews
+    app.get("/reviews", async (req, res) => {
+      const result = await reviewsColl.find().toArray();
+      res.send(result);
+    });
+
     //  user's reviews
     app.get("/review/:email", async (req, res) => {
       const email = req.params.email;
@@ -211,6 +245,12 @@ async function run() {
     });
 
     // order by single user
+    app.get("/orders", async (req, res) => {
+      const result = await ordersColl.find().toArray();
+      res.send(result);
+    });
+    
+    // order by single user
     app.get("/order/:email", async (req, res) => {
       const email = req.params.email;
       const result = await ordersColl.find({ userEmail: email }).toArray();
@@ -220,7 +260,7 @@ async function run() {
     // chef's order requests
     app.get("/order/chef/:id", async (req, res) => {
       const chefId = req.params.id;
-      console.log(req);
+      // console.log(req);
       const result = await ordersColl.find({ chefId }).toArray();
       res.send(result);
     });
@@ -254,7 +294,7 @@ async function run() {
       };
       const result = await usersColl.findOneAndUpdate({ email }, update);
       res.send(result);
-      console.log(result);
+      // console.log(result);
     });
 
     // Order Process
@@ -281,10 +321,25 @@ async function run() {
       const result = await rolesColl.deleteOne({ userEmail });
       res.send(result);
     });
+
     // favorite meal  delete
     app.delete("/favorite/:id", async (req, res) => {
       const id = req.params.id;
       const result = await favoriteColl.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+    // user review  delete
+    app.delete("/review/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await reviewsColl.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+    // chef's meal  delete
+    app.delete("/meal/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await mealsColl.deleteOne({ _id: new ObjectId(id) });
       res.send(result);
     });
 
@@ -338,7 +393,7 @@ async function run() {
       }
     });
 
-// Retrieve STRIPE SESSION
+    // Retrieve STRIPE SESSION
     app.get("/session-status", async (req, res) => {
       const { session_id } = req.query;
       if (!session_id) {
